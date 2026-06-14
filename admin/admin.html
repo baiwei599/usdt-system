@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USDT兑换系统 - 管理后台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+        }
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            z-index: 100;
+        }
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .sidebar-header span { background: linear-gradient(135deg, #FFD700, #FFA500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-menu { padding: 20px 0; }
+        .nav-item {
+            padding: 14px 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: rgba(255,255,255,0.7);
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.1); color: white; }
+        .nav-item.active { background: rgba(255,255,255,0.15); color: white; border-right: 3px solid #FFD700; }
+        .user-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 14px;
+        }
+        .main-content {
+            margin-left: 260px;
+            padding: 24px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .stat-title { color: #666; font-size: 14px; margin-bottom: 8px; }
+        .stat-value { font-size: 32px; font-weight: bold; color: #1a1a2e; }
+        .monitor-panel {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .panel-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .live-badge {
+            background: #e74c3c;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .monitor-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .monitor-item {
+            background: #f8f9fc;
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .monitor-label { color: #666; font-size: 13px; margin-bottom: 8px; }
+        .monitor-value { font-size: 24px; font-weight: bold; }
+        .orders-table-container {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fc; font-weight: 600; }
+        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; display: inline-block; }
+        .status-0 { background: #f39c12; color: white; }
+        .status-1 { background: #3498db; color: white; }
+        .status-2 { background: #27ae60; color: white; }
+        .btn { padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; margin: 0 4px; }
+        .btn-primary { background: #1a1a2e; color: white; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-warning { background: #f39c12; color: white; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
+        .form-group input, .form-group select { padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; width: 300px; }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #27ae60; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            z-index: 1000;
+            display: none;
+        }
+        .address-item, .image-item {
+            background: #f8f9fc;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .image-preview {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+        }
+        .image-info {
+            flex: 1;
+            margin-left: 15px;
+        }
+        .image-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .size-tip {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-header"><span>USDT</span> 兑换系统<br><div style="font-size:12px;color:rgba(255,255,255,0.5);">管理后台 V8.1</div></div>
+    <div class="nav-menu">
+        <div class="nav-item active" data-tab="monitor">📊 实时监控</div>
+        <div class="nav-item" data-tab="orders">📋 订单管理</div>
+        <div class="nav-item" data-tab="addresses">💰 收款地址</div>
+        <div class="nav-item" data-tab="images">🖼️ 图片管理</div>
+        <div class="nav-item" data-tab="announcements">📢 公告管理</div>
+        <div class="nav-item" data-tab="config">⚙️ 系统配置</div>
+        <div class="nav-item" data-tab="users">👥 子账号管理</div>
+        <div class="nav-item" data-tab="logs">📜 操作日志</div>
+    </div>
+    <div class="user-info">
+        <div>👤 <span id="adminName">admin</span></div>
+        <div style="margin-top:10px;"><button class="btn btn-danger" onclick="logout()" style="width:100%;">退出登录</button></div>
+    </div>
+</div>
+
+<div class="main-content">
+    <!-- 实时监控 -->
+    <div id="tab-monitor" class="tab-content active">
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-title">今日订单</div><div class="stat-value" id="todayOrders">0</div></div>
+            <div class="stat-card"><div class="stat-title">今日金额 (USDT)</div><div class="stat-value" id="todayAmount">0</div></div>
+            <div class="stat-card"><div class="stat-title">待处理订单</div><div class="stat-value" id="pendingOrders">0</div></div>
+            <div class="stat-card"><div class="stat-title">已完成订单</div><div class="stat-value" id="completedOrders">0</div></div>
+        </div>
+        <div class="monitor-panel">
+            <div class="panel-title"><span>📡 实时监控面板</span><span class="live-badge">● LIVE</span></div>
+            <div class="monitor-grid">
+                <div class="monitor-item"><div class="monitor-label">当前汇率</div><div class="monitor-value">1 USDT = <span id="rateValue">8.80</span> CNY</div></div>
+                <div class="monitor-item"><div class="monitor-label">自动审核状态</div><div class="monitor-value" id="autoAuditStatus">⏳ 加载中...</div></div>
+                <div class="monitor-item"><div class="monitor-label">收款方式配置</div><div class="monitor-value" id="payMethodStatus">-</div></div>
+            </div>
+        </div>
+        <div class="orders-table-container">
+            <div style="display:flex;justify-content:space-between;margin-bottom:20px;"><div class="panel-title" style="margin-bottom:0;">📋 最近订单</div><button class="btn btn-primary" onclick="fetchOrders()">🔄 刷新</button></div>
+            <table id="recentOrdersTable"><thead><tr><th>订单号</th><th>金额(USDT)</th><th>状态</th><th>收款地址</th><th>时间</th></tr></thead><tbody id="recentOrdersList"><td><td colspan="5" style="text-align:center;">加载中...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 订单管理 -->
+    <div id="tab-orders" class="tab-content">
+        <div class="orders-table-container">
+            <div class="panel-title">📋 全部订单</div>
+            <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+                <input type="text" id="searchOrder" placeholder="搜索订单号" style="padding:8px;border:1px solid #ddd;border-radius:8px;">
+                <select id="filterStatus" style="padding:8px;"><option value="">全部状态</option><option value="0">待支付</option><option value="1">已支付</option><option value="2">已完成</option><option value="3">已取消</option></select>
+                <button class="btn btn-primary" onclick="searchOrders()">搜索</button>
+            </div>
+            <div style="overflow-x:auto;">
+                <table id="allOrdersTable"><thead><tr><th>订单号</th><th>金额</th><th>状态</th><th>收款方式</th><th>收款人</th><th>收款地址</th><th>时间</th><th>操作</th></tr></thead><tbody id="allOrdersList"><tr><td colspan="8" style="text-align:center;">加载中...</td></tr></tbody></table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 收款地址管理 -->
+    <div id="tab-addresses" class="tab-content">
+        <div class="orders-table-container">
+            <div class="panel-title">💰 收款地址池 <button class="btn btn-primary" onclick="showAddAddressModal()" style="margin-left:15px;">+ 添加地址</button></div>
+            <div id="addressesList"></div>
+        </div>
+    </div>
+
+    <!-- 图片管理 -->
+    <div id="tab-images" class="tab-content">
+        <div class="orders-table-container">
+            <div class="panel-title">🖼️ 图片管理 <span style="font-size:12px;color:#999;margin-left:15px;">推荐尺寸：Logo 120x40、图标 32x32</span></div>
+            <div id="imagesList"></div>
+        </div>
+    </div>
+
+    <!-- 公告管理 -->
+    <div id="tab-announcements" class="tab-content">
+        <div class="orders-table-container">
+            <div class="panel-title">📢 公告管理 <button class="btn btn-primary" onclick="showAddAnnouncementModal()" style="margin-left:15px;">+ 发布公告</button></div>
+            <div id="announcementsList"></div>
+        </div>
+    </div>
+
+    <!-- 系统配置 -->
+    <div id="tab-config" class="tab-content">
+        <div class="orders-table-container">
+            <div class="panel-title">⚙️ 系统配置</div>
+            <div class="form-group"><label>USDT/CNY 汇率</label><input type="number" id="configRate" step="0.01" value="8.80"><button class="btn btn-success" onclick="updateRate()" style="margin-left:10px;">保存汇率</button></div>
+            <div class="form-group"><label>自动审核到账</label><label class="switch"><input type="checkbox" id="configAutoAudit" onchange="updateAutoAudit()"><span class="slider"></span></label></div>
+            <div class="form-group"><label>用户收款方式</label><select id="configPayMethod" onchange="updatePayMethod()"><option value="all">全部开启</option><option value="alipay">仅支付宝</option><option value="bank">仅银行卡</option></select></div>
+            <div class="form-group"><label>最低兑换金额 (USDT)</label><input type="number" id="configMinAmount" step="1" value="10"><button class="btn btn-success" onclick="updateMinAmount()" style="margin-left:10px;">保存</button></div>
+        </div>
+    </div>
+
+    <!-- 子账号管理 -->
+    <div id="tab-users" class="tab-content">
+        <div class="orders-table-container">
+            <div class="panel-title">👥 子账号管理 <button class="btn btn-primary" onclick="showAddUserModal()" style="margin-left:15px;">+ 添加子账号</button></div>
+            <div id="usersList"></div>
+        </div>
+    </div>
+
+    <!-- 操作日志 -->
+    <div id="tab-logs" class="tab-content">
+        <div class="orders-table-container">
+            <div class="panel-title">📜 操作日志</div>
+            <div style="overflow-x:auto;">
+                <table id="logsTable"><thead><tr><th>操作人</th><th>操作内容</th><th>IP</th><th>时间</th></tr></thead><tbody id="logsList"><tr><td colspan="4" style="text-align:center;">加载中...</td></tr></tbody></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toastMsg">操作成功</div>
+
+<!-- 添加地址弹窗 -->
+<div id="addressModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);justify-content:center;align-items:center;z-index:1000;">
+    <div style="background:white;border-radius:16px;padding:30px;width:400px;max-width:90%;"><h3>添加收款地址</h3><input type="text" id="newAddress" placeholder="TRC20地址" style="width:100%;padding:10px;margin:15px 0;border:1px solid #ddd;border-radius:8px;"><input type="text" id="addressName" placeholder="地址名称（可选）" style="width:100%;padding:10px;margin:15px 0;border:1px solid #ddd;border-radius:8px;"><button class="btn btn-success" onclick="addAddress()">确认添加</button><button class="btn btn-danger" onclick="closeAddressModal()" style="margin-left:10px;">取消</button></div>
+</div>
+
+<!-- 图片上传弹窗 -->
+<div id="imageUploadModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);justify-content:center;align-items:center;z-index:1000;">
+    <div style="background:white;border-radius:16px;padding:30px;width:400px;max-width:90%;"><h3 id="uploadImageName">上传图片</h3><input type="file" id="uploadFile" accept="image/*" style="width:100%;padding:10px;margin:15px 0;border:1px solid #ddd;border-radius:8px;"><div class="size-tip" id="sizeTip">推荐尺寸: 120x40 像素</div><button class="btn btn-success" onclick="uploadImage()">确认上传</button><button class="btn btn-danger" onclick="closeImageUploadModal()" style="margin-left:10px;">取消</button></div>
+</div>
+
+<script>
+    const API_BASE = '';
+    let token = localStorage.getItem('adminToken');
+    let currentImageKey = '';
+    let currentImageSizeTip = '';
+    
+    function showToast(msg, isError = false) {
+        const toast = document.getElementById('toastMsg');
+        toast.textContent = msg;
+        toast.style.backgroundColor = isError ? '#e74c3c' : '#27ae60';
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display = 'none', 3000);
+    }
+    
+    function logout() { localStorage.removeItem('adminToken'); localStorage.removeItem('adminUser'); window.location.href = 'login.html'; }
+    
+    async function fetchStats() {
+        try {
+            const res = await fetch(`${API_BASE}/api/orders`);
+            const orders = await res.json();
+            const today = new Date().toDateString();
+            let todayCount = 0, todayAmount = 0, pending = 0, completed = 0;
+            orders.forEach(o => {
+                if (new Date(o.created_at).toDateString() === today) { todayCount++; todayAmount += parseFloat(o.amount); }
+                if (o.status === 0) pending++;
+                if (o.status === 2) completed++;
+            });
+            document.getElementById('todayOrders').innerText = todayCount;
+            document.getElementById('todayAmount').innerText = todayAmount.toFixed(2);
+            document.getElementById('pendingOrders').innerText = pending;
+            document.getElementById('completedOrders').innerText = completed;
+        } catch(e) {}
+    }
+    
+    async function fetchOrders() {
+        try {
+            const res = await fetch(`${API_BASE}/api/orders`);
+            const orders = await res.json();
+            const statusMap = {0:'⏳待支付',1:'💳已支付',2:'✅已完成',3:'❌已取消'};
+            document.getElementById('recentOrdersList').innerHTML = orders.slice(0,10).map(o => `<tr><td>${o.order_no}</td><td>${o.amount}</td><td><span class="status-badge status-${o.status}">${statusMap[o.status]}</span></td><td style="font-size:12px;">${o.payment_address || '-'}</td><td>${new Date(o.created_at).toLocaleString()}</td></tr>`).join('');
+            document.getElementById('allOrdersList').innerHTML = orders.map(o => `<tr><td>${o.order_no}</td><td>${o.amount}</td><td><span class="status-badge status-${o.status}">${statusMap[o.status]}</span></td><td>${o.pay_type === 'bank' ? '银行卡' : '支付宝'}</td><td>${o.receiver_name || '-'}</td><td style="font-size:11px;">${o.payment_address || '-'}</td><td>${new Date(o.created_at).toLocaleString()}</td><td><button class="btn btn-success btn-sm" onclick="updateOrderStatus(${o.id},2)">完成</button><button class="btn btn-danger btn-sm" onclick="updateOrderStatus(${o.id},3)">取消</button></td></tr>`).join('');
+        } catch(e) { console.error(e); }
+    }
+    
+    async function updateOrderStatus(orderId, status) { 
+        try { 
+            await fetch(`${API_BASE}/api/admin/order/status`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
+                body: JSON.stringify({ orderId, status }) 
+            }); 
+            showToast('状态已更新'); 
+            fetchOrders(); 
+        } catch(e) { showToast('操作失败', true); } 
+    }
+    
+    async function updateRate() { 
+        const rate = document.getElementById('configRate').value; 
+        try { 
+            await fetch(`${API_BASE}/api/admin/rate`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
+                body: JSON.stringify({ rate }) 
+            }); 
+            showToast('汇率已更新'); 
+            document.getElementById('rateValue').innerText = rate; 
+        } catch(e) { showToast('更新失败', true); } 
+    }
+    
+    async function updateAutoAudit() { 
+        const enabled = document.getElementById('configAutoAudit').checked ? 1 : 0; 
+        try { 
+            await fetch(`${API_BASE}/api/admin/auto-audit`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
+                body: JSON.stringify({ enabled }) 
+            }); 
+            showToast(`自动审核已${enabled ? '开启' : '关闭'}`); 
+            document.getElementById('autoAuditStatus').innerHTML = enabled ? '🟢 已开启' : '🔴 已关闭'; 
+        } catch(e) { showToast('操作失败', true); } 
+    }
+    
+    async function updatePayMethod() { 
+        const method = document.getElementById('configPayMethod').value; 
+        try { 
+            await fetch(`${API_BASE}/api/admin/pay-method`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
+                body: JSON.stringify({ pay_method_config: method }) 
+            }); 
+            showToast('收款方式已更新'); 
+        } catch(e) { showToast('更新失败', true); } 
+    }
+    
+    async function loadConfig() { 
+        try { 
+            const res = await fetch(`${API_BASE}/api/rate`); 
+            const data = await res.json(); 
+            document.getElementById('configRate').value = data.rate; 
+            document.getElementById('rateValue').innerText = data.rate; 
+        } catch(e) {} 
+    }
+    
+    async function loadAddresses() { 
+        try { 
+            const res = await fetch(`${API_BASE}/api/admin/addresses`, { headers: { 'Authorization': `Bearer ${token}` } }); 
+            const addresses = await res.json(); 
+            document.getElementById('addressesList').innerHTML = addresses.map(a => `<div class="address-item"><div><strong>${a.name || '未命名'}</strong><br><span style="font-size:12px;">${a.address}</span><br><span style="font-size:12px;">收款: ${a.total_received || 0} USDT / ${a.total_orders || 0}笔</span></div><div><button class="btn btn-warning" onclick="toggleAddress(${a.id}, ${a.status === 1 ? 0 : 1})">${a.status === 1 ? '禁用' : '启用'}</button><button class="btn btn-danger" onclick="deleteAddress(${a.id})">删除</button></div></div>`).join(''); 
+        } catch(e) {} 
+    }
+    
+    async function loadImages() {
+        try {
+            const res = await fetch(`${API_BASE}/api/admin/images`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const images = await res.json();
+            const sizeTips = { 'logo': '推荐: 120x40', 'qianbao': '推荐: 32x32', 'bb': '推荐: 32x32', 'trx_usdt': '推荐: 32x32', 'cn': '推荐: 32x32', 'yhk': '推荐: 32x32', 'zfb': '推荐: 32x32' };
+            document.getElementById('imagesList').innerHTML = images.map(img => `
+                <div class="image-item">
+                    <img src="${API_BASE}${img.file_path}?t=${Date.now()}" class="image-preview" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22%3E%3Ctext x=%2250%25%22 y=%2250%22 text-anchor=%22middle%22 dy=%22.3em%22%3E无图片%3C/text%3E%3C/svg%3E'">
+                    <div class="image-info">
+                        <strong>${img.image_name}</strong>
+                        <div class="size-tip">${sizeTips[img.image_key] || '推荐: 32x32'}</div>
+                        <div style="font-size:11px;color:#999;">路径: ${img.file_path}</div>
+                    </div>
+                    <div class="image-actions">
+                        <button class="btn btn-primary" onclick="showImageUpload('${img.image_key}', '${img.image_name}', '${sizeTips[img.image_key] || '推荐: 32x32'}')">上传替换</button>
+                    </div>
+                </div>
+            `).join('');
+        } catch(e) { console.error(e); }
+    }
+    
+    function showImageUpload(key, name, tip) {
+        currentImageKey = key;
+        currentImageSizeTip = tip;
+        document.getElementById('uploadImageName').innerHTML = `上传 ${name}`;
+        document.getElementById('sizeTip').innerHTML = tip;
+        document.getElementById('imageUploadModal').style.display = 'flex';
+        document.getElementById('uploadFile').value = '';
+    }
+    
+    function closeImageUploadModal() {
+        document.getElementById('imageUploadModal').style.display = 'none';
+        currentImageKey = '';
+    }
+    
+    async function uploadImage() {
+        const file = document.getElementById('uploadFile').files[0];
+        if (!file) { showToast('请选择图片', true); return; }
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('image_key', currentImageKey);
+        try {
+            const res = await fetch(`${API_BASE}/api/admin/images/upload`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast('图片上传成功');
+                closeImageUploadModal();
+                loadImages();
+            } else {
+                showToast(data.msg || '上传失败', true);
+            }
+        } catch(e) { showToast('上传失败', true); }
+    }
+    
+    function showAddAddressModal() { document.getElementById('addressModal').style.display = 'flex'; }
+    function closeAddressModal() { document.getElementById('addressModal').style.display = 'none'; document.getElementById('newAddress').value = ''; document.getElementById('addressName').value = ''; }
+    async function addAddress() { 
+        const address = document.getElementById('newAddress').value; 
+        const name = document.getElementById('addressName').value; 
+        if (!address) return showToast('请输入地址', true); 
+        try { 
+            await fetch(`${API_BASE}/api/admin/addresses`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
+                body: JSON.stringify({ address, name }) 
+            }); 
+            showToast('地址已添加'); 
+            closeAddressModal(); 
+            loadAddresses(); 
+        } catch(e) { showToast('添加失败', true); } 
+    }
+    
+    async function fetchLogs() { 
+        try { 
+            const res = await fetch(`${API_BASE}/api/admin/logs`, { headers: { 'Authorization': `Bearer ${token}` } }); 
+            const logs = await res.json(); 
+            document.getElementById('logsList').innerHTML = logs.map(l => `<tr><td>${l.username || '系统'}</td><td>${l.action}</td><td>${l.ip}</td><td>${new Date(l.created_at).toLocaleString()}</td></tr>`).join(''); 
+        } catch(e) {} 
+    }
+    
+    function searchOrders() {
+        const search = document.getElementById('searchOrder').value.toLowerCase();
+        const status = document.getElementById('filterStatus').value;
+        const rows = document.querySelectorAll('#allOrdersTable tbody tr');
+        rows.forEach(row => {
+            const orderNo = row.cells[0]?.innerText.toLowerCase() || '';
+            const orderStatus = row.cells[2]?.innerText.includes('待支付') ? '0' : row.cells[2]?.innerText.includes('已支付') ? '1' : row.cells[2]?.innerText.includes('已完成') ? '2' : '3';
+            const matchSearch = search === '' || orderNo.includes(search);
+            const matchStatus = status === '' || orderStatus === status;
+            row.style.display = matchSearch && matchStatus ? '' : 'none';
+        });
+    }
+    
+    document.querySelectorAll('.nav-item').forEach(item => { 
+        item.addEventListener('click', () => { 
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); 
+            item.classList.add('active'); 
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); 
+            document.getElementById(`tab-${item.dataset.tab}`).classList.add('active'); 
+            if (item.dataset.tab === 'addresses') loadAddresses(); 
+            if (item.dataset.tab === 'images') loadImages(); 
+            if (item.dataset.tab === 'logs') fetchLogs(); 
+        }); 
+    });
+    
+    function init() { 
+        if (!token) { window.location.href = 'login.html'; return; } 
+        fetchStats(); 
+        fetchOrders(); 
+        loadConfig(); 
+        loadAddresses(); 
+        loadImages(); 
+        fetchLogs(); 
+        setInterval(fetchStats, 30000); 
+        setInterval(fetchOrders, 30000); 
+    }
+    init();
+</script>
+</body>
+</html>
